@@ -20,12 +20,8 @@ namespace AzDoAgentDrainer
         public async Task Drain()
         {
             Console.WriteLine("Draining Agents");
-
-            foreach (var sc in Servers)
-            {
-                await DrainByServer(sc);
-            }
-
+            
+            await Task.WhenAll(Servers.Select(sc => DrainByServer(sc)));
         }
 
         private async Task DrainByServer(ServerContext sc)
@@ -66,11 +62,7 @@ namespace AzDoAgentDrainer
         public async Task Enable()
         {
             Console.WriteLine("Agents to be enabled:");
-            
-            foreach (var sc in Servers)
-            {
-                await EnableByServer(sc);
-            };
+            await Task.WhenAll(Servers.Select(sc => EnableByServer(sc)));
         }
 
         public async Task EnableByServer(ServerContext sc)
