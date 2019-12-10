@@ -21,20 +21,18 @@ namespace AzDoAgentDrainer
         {
             Console.WriteLine("Draining Agents");
 
-            foreach (var sc in Servers)
-            {
-                await DrainByServer(sc);
-            }
-
+            // Iterate over each server in parallel
+            await Task.WhenAll(Servers.Select(sc => DrainByServer(sc)));
         }
 
         private async Task DrainByServer(ServerContext sc)
         {
             var agentsByPool = sc.Agents.GroupBy(p => p.PoolID);
 
-            foreach (var pool in agentsByPool)
+            // Iterate over each pool and disable agents in parallel
+            await Task.WhenAll(agentsByPool.Select(async abp =>
             {
-                foreach (var agent in pool)
+                foreach (var agent in abp)
                 {
                     // Some agents are disabled. We need to keep track of the ones to be re-enabled. 
                     if (agent.Agent.Enabled ?? false)
@@ -59,37 +57,36 @@ namespace AzDoAgentDrainer
                             result.Result.Where(a => a.AssignedRequest != null)
                                          .ForEach(x => Console.WriteLine(x.AssignedRequest.JobId));
                         })
-                    .ExecuteAsync(async () => await sc.Client.GetAgentsAsync(poolId: pool.Key, includeAssignedRequest: true));
-            }
+                    .ExecuteAsync(async () => await sc.Client.GetAgentsAsync(poolId: abp.Key, includeAssignedRequest: true));
+
+            }));
         }
 
         public async Task Enable()
         {
             Console.WriteLine("Agents to be enabled:");
             
-            foreach (var sc in Servers)
-            {
-                await EnableByServer(sc);
-            };
+            // Iterate over each server in parallel
+            await Task.WhenAll(Servers.Select(sc => EnableByServer(sc)));
         }
 
-        public async Task EnableByServer(ServerContext sc)
+        private async Task EnableByServer(ServerContext sc)
         {
             var agentsByPool = sc.Agents.Where(x => x.Reenable)
                                         .GroupBy(x => x.PoolID);
 
-            foreach (var pool in agentsByPool)
-            {
-                foreach (var a in pool)
+            // Iterate over each pool and enable agents in parallel
+            await Task.WhenAll(agentsByPool.Select(async abp => {
+                foreach (var a in abp)
                 {
                     Console.WriteLine($"Agent Name: {a.AgentName}");
 
-                    var agent = await sc.Client.GetAgentAsync(a.PoolID, a.AgentId);
+                    var agent = await sc.Client.GetAgentAsync(abp.Key, a.AgentId);
                     agent.Enabled = true;
 
-                    await sc.Client.UpdateAgentAsync(pool.Key, a.AgentId, agent);
+                    await sc.Client.UpdateAgentAsync(abp.Key, a.AgentId, agent);
                 }
-            }
+            }));
         }
     }
 }
