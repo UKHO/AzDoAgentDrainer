@@ -1,4 +1,5 @@
-﻿using Microsoft.TeamFoundation.DistributedTask.WebApi;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.TeamFoundation.DistributedTask.WebApi;
 using Microsoft.VisualStudio.Services.Common;
 using Polly;
 using System;
@@ -10,19 +11,22 @@ namespace AzDoAgentDrainer
 {
     public class Context
     {
+        private readonly ILogger logger;
+
         public List<ServerContext> Servers { get; } = new List<ServerContext>();
 
-        public Context(List<ServerContext> Servers)
+        public Context(List<ServerContext> Servers, ILogger logger)
         {
             this.Servers = Servers;
+            this.logger = logger;
         }
 
         public async Task Drain()
         {
-            Console.WriteLine("Draining Agents");
-
+            logger.LogInformation("Draining agents");
             // Iterate over each server in parallel
             await Task.WhenAll(Servers.Select(sc => DrainByServer(sc)));
+            logger.LogDebug("Agents drained");
         }
 
         private async Task DrainByServer(ServerContext sc)
@@ -38,7 +42,11 @@ namespace AzDoAgentDrainer
                     if (agent.Agent.Enabled ?? false)
                     {
                         agent.Reenable = true;
-                        Console.WriteLine($"Disabling {agent.Agent.Name}");
+                        logger.LogInformation("Disabling agent {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);                        
+                    }
+                    else
+                    {
+                        logger.LogInformation("Agent already disabled {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);
                     }
 
                     agent.Agent.Enabled = false;
@@ -55,7 +63,7 @@ namespace AzDoAgentDrainer
                         (result, timespan, context) =>
                         {
                             result.Result.Where(a => a.AssignedRequest != null)
-                                         .ForEach(x => Console.WriteLine(x.AssignedRequest.JobId));
+                                         .ForEach(x => logger.LogInformation("Waiting for {job} to finish", x.AssignedRequest.JobId)); ;
                         })
                     .ExecuteAsync(async () => await sc.Client.GetAgentsAsync(poolId: abp.Key, includeAssignedRequest: true));
 
@@ -64,10 +72,10 @@ namespace AzDoAgentDrainer
 
         public async Task Enable()
         {
-            Console.WriteLine("Agents to be enabled:");
-            
+            logger.LogInformation("Renabling Agents");
             // Iterate over each server in parallel
             await Task.WhenAll(Servers.Select(sc => EnableByServer(sc)));
+            logger.LogDebug("Agents reenabled");
         }
 
         private async Task EnableByServer(ServerContext sc)
@@ -79,8 +87,7 @@ namespace AzDoAgentDrainer
             await Task.WhenAll(agentsByPool.Select(async abp => {
                 foreach (var a in abp)
                 {
-                    Console.WriteLine($"Agent Name: {a.AgentName}");
-
+                    logger.LogInformation("Enabling agent {AgentName} {AgentPoolId} {AgentServer}", a.AgentName, abp.Key, sc.Client.BaseAddress);
                     var agent = await sc.Client.GetAgentAsync(abp.Key, a.AgentId);
                     agent.Enabled = true;
 
