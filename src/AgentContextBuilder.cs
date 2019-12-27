@@ -24,6 +24,8 @@ namespace AzDoAgentDrainer
             return this;
         }
 
+
+
         public AgentContextBuilder AddLogger(ILogger logger)
         {
             this.logger = logger;
@@ -61,6 +63,20 @@ namespace AzDoAgentDrainer
             
             discoverAgents = async (client, logger) => await Approaches.GetAgentsByComputerName(ComputerName, logger, client);
             logger.LogDebug("{Approach} added as approach", "GetAgentsByComputerName");
+
+            return this;
+        }
+
+        public AgentContextBuilder WhereComputerNameContains(string searchstring)
+        {
+            if (discoverAgents != null)
+            {
+                logger.LogError(WhereErrorMessage);
+                throw new Exception(WhereErrorMessage);
+            }
+
+            discoverAgents = async (client, logger) => await Approaches.GetAgentsBySearchString(searchstring, logger, client);
+            logger.LogDebug("{Approach} added as approach", "GetAgentsBySearchString");
 
             return this;
         }

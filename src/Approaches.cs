@@ -49,5 +49,27 @@ namespace AzDoAgentDrainer
 
             return matchingWrappedAgents;
         }
+
+        public static async Task<List<WrappedAgent>> GetAgentsBySearchString(string searchstring, ILogger logger, TaskAgentHttpClient client)
+        {
+            logger.LogInformation("Discovering agents by {Approach} {searchstring}", "GetAgentsBySearchString", searchstring);
+            var matchingWrappedAgents = new List<WrappedAgent>();
+            var pools = await client.GetAgentPoolsAsync();
+
+            foreach (var p in pools)
+            {
+                var agents = await client.GetAgentsAsync(poolId: p.Id);
+                var agentsMatchName = agents.Where(x => x.Name.Contains(searchstring)).ToList();
+                agentsMatchName.ForEach(a => logger.LogInformation("Agent discovered: {AgentName} {AgentEnabled} {AgentPoolId} {AgentServer}", a.Name, a.Enabled, p.Id, client.BaseAddress));
+
+                // Turn this into a list of wrappedAgents
+                var wrappedAgents = agentsMatchName.Select(x => new WrappedAgent { PoolID = p.Id, AgentId = x.Id, Agent = x, AgentName = x.Name }).ToList();
+
+                // Add the list to the list of all.
+                matchingWrappedAgents = matchingWrappedAgents.Concat(wrappedAgents).ToList();
+            }
+
+            return matchingWrappedAgents;
+        }
     }
 }

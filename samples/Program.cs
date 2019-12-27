@@ -21,16 +21,18 @@ namespace AzDoAgentDrainer.CLI
 
             var agentsContext = await new AgentContextBuilder()
                                     .AddLogger(GetLogger())
-                                    .AddServer(tfs, tfsPat)
+                                    //.AddServer(tfs, tfsPat)
                                     //.WherePoolId(2)
                                     .AddServer(azdo, azdoPat)
-                                    .WhereComputerName(computerName)
+                                    //.WhereComputerName(computerName)
+                                    .WhereComputerNameContains(computerName)
                                     .Build();            
 
             Console.WriteLine("Agent Context Built");
 
             await agentsContext.Drain();
             Console.WriteLine("All Jobs Finished again");
+            Console.ReadLine();
             await agentsContext.Enable();
         }
 
