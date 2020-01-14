@@ -9,5 +9,6 @@ namespace AzDoAgentDrainer
         public string AgentName { get; set; }
         public TaskAgent Agent { get; set; }
         public bool Reenable { get; set; } = false;
+        public string ComputerName { get; set; }
     }
 }

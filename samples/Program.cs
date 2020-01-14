@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AzDoAgentDrainer.CLI
@@ -19,18 +20,22 @@ namespace AzDoAgentDrainer.CLI
 
             var computerName = args[4];            
 
-            var agentsContext = await new AgentContextBuilder()
+            var agentsContext = await new AgentContextBuilder()            
                                     .AddLogger(GetLogger())
-                                    .AddServer(tfs, tfsPat)
-                                    //.WherePoolId(2)
+                                    .AddServer(tfs, tfsPat)                                    
                                     .AddServer(azdo, azdoPat)
-                                    .WhereComputerName(computerName)
+                                    .SelectAgents(x =>
+                                    {
+                                        return x.Where(a => a.ComputerName.ToUpper() == computerName.ToUpper());
+                                    })                                    
                                     .Build();            
 
             Console.WriteLine("Agent Context Built");
 
             await agentsContext.Drain();
+            
             Console.WriteLine("All Jobs Finished again");
+            Console.ReadLine();
             await agentsContext.Enable();
         }
 

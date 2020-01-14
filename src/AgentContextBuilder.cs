@@ -12,11 +12,9 @@ namespace AzDoAgentDrainer
 {
     public class AgentContextBuilder
     {
-        private List<VssConnection> vssConnections = new List<VssConnection>();        
-        private Func<TaskAgentHttpClient, ILogger, Task<List<WrappedAgent>>> discoverAgents;
+        private List<VssConnection> vssConnections = new List<VssConnection>();                
         private ILogger logger = NullLogger.Instance;
-
-        private string WhereErrorMessage = "AgentContextBuilder only allows one `Where` per pipeline";
+        private Func<List<WrappedAgent>, IEnumerable<WrappedAgent>> filter;     
 
         public AgentContextBuilder AddServer(Uri AzDoUri, string pat)
         {
@@ -30,38 +28,9 @@ namespace AzDoAgentDrainer
             return this;
         }
 
-        public AgentContextBuilder WherePoolId(int PoolID)
+        public AgentContextBuilder SelectAgents(Func<List<WrappedAgent>, IEnumerable<WrappedAgent>> filter)
         {
-            if(discoverAgents != null)
-            {
-                logger.LogError(WhereErrorMessage);
-                throw new Exception(WhereErrorMessage);
-            }
-
-            // Cheap naive guard
-            if (vssConnections.Count > 1)
-            {
-                logger.LogError("WherePoolId can only be used when only one server has been added");
-                throw new Exception("WherePoolId can only be used when only one server has been added");
-            }            
-            
-            discoverAgents = async (client, logger) => await Approaches.GetAgentsByPoolID(PoolID, logger, client);
-            logger.LogDebug("{Approach} added as approach", "GetAgentsByPoolID");
-
-            return this;
-        }
-     
-        public AgentContextBuilder WhereComputerName(string ComputerName)
-        {
-            if (discoverAgents != null)
-            {
-                logger.LogError(WhereErrorMessage);
-                throw new Exception(WhereErrorMessage);
-            }
-            
-            discoverAgents = async (client, logger) => await Approaches.GetAgentsByComputerName(ComputerName, logger, client);
-            logger.LogDebug("{Approach} added as approach", "GetAgentsByComputerName");
-
+            this.filter = filter;
             return this;
         }
 
@@ -69,10 +38,16 @@ namespace AzDoAgentDrainer
         {
             var serverContext = new List<ServerContext>();
 
+            if(filter == null) {
+                throw new Exception("SelectAgents must be configured");
+            }
+
             foreach (var connection in vssConnections)
             {
-                var client = connection.GetClient<TaskAgentHttpClient>();                
-                var agents = await discoverAgents(client, logger);
+                var client = connection.GetClient<TaskAgentHttpClient>();
+                var agents = await GetAgents(client, logger);
+
+                agents = filter(agents).ToList();
 
                 if(agents.Any())
                 {
@@ -97,6 +72,23 @@ namespace AzDoAgentDrainer
             };            
 
             return new Context(serverContext, logger);
+        }
+
+
+        private static async Task<List<WrappedAgent>> GetAgents(TaskAgentHttpClient client, ILogger logger)
+        {
+            var matchingWrappedAgents = new List<WrappedAgent>();
+            var pools = await client.GetAgentPoolsAsync();
+
+            foreach (var p in pools.Where(x => x.IsHosted == false))
+            {
+                var agents = await client.GetAgentsAsync(p.Id, includeCapabilities: true);
+                var wrappedAgents = agents.Select(x => new WrappedAgent { PoolID = p.Id, AgentId = x.Id, Agent = x, AgentName = x.Name, ComputerName = x.SystemCapabilities["Agent.ComputerName"] });
+
+                matchingWrappedAgents = matchingWrappedAgents.Concat(wrappedAgents).ToList();
+            }
+
+            return matchingWrappedAgents;
         }
     }
 }
