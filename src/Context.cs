@@ -42,11 +42,11 @@ namespace AzDoAgentDrainer
                     if (agent.Agent.Enabled ?? false)
                     {
                         agent.Reenable = true;
-                        logger.LogInformation("Disabling agent {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);                        
+                        logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);                        
                     }
                     else
                     {
-                        logger.LogInformation("Agent already disabled {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);
+                        logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);
                     }
 
                     agent.Agent.Enabled = false;
