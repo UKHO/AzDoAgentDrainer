@@ -6,6 +6,6 @@ namespace AzDoAgentDrainer
     public class ServerContext
     {
         public TaskAgentHttpClient Client { get; set; }
-        public List<WrappedAgent> Agents { get; set; }
+        public IEnumerable<Agent> Agents { get; set; }
     }
 }

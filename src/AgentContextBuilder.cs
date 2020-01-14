@@ -14,7 +14,7 @@ namespace AzDoAgentDrainer
     {
         private List<VssConnection> vssConnections = new List<VssConnection>();                
         private ILogger logger = NullLogger.Instance;
-        private Func<List<WrappedAgent>, IEnumerable<WrappedAgent>> filter;     
+        private Func<IEnumerable<Agent>, IEnumerable<Agent>> filter;     
 
         public AgentContextBuilder AddServer(Uri AzDoUri, string pat)
         {
@@ -28,7 +28,7 @@ namespace AzDoAgentDrainer
             return this;
         }
 
-        public AgentContextBuilder SelectAgents(Func<List<WrappedAgent>, IEnumerable<WrappedAgent>> filter)
+        public AgentContextBuilder SelectAgents(Func<IEnumerable<Agent>, IEnumerable<Agent>> filter)
         {
             this.filter = filter;
             return this;
@@ -45,14 +45,14 @@ namespace AzDoAgentDrainer
             foreach (var connection in vssConnections)
             {
                 var client = connection.GetClient<TaskAgentHttpClient>();
-                var agents = await GetAgents(client, logger);
+                var agents = await GetAllAgentsForAzureDevopsInstance(client, logger);
 
                 agents = filter(agents).ToList();
 
                 if(agents.Any())
                 {
                     logger.LogDebug("{server} and associated agents added to server context", connection.Uri);
-                    serverContext.Add(new ServerContext() { Client = client, Agents = agents });
+                    serverContext.Add(new ServerContext() { Client = client, Agents = agents});
                 }
                 else
                 {
@@ -68,27 +68,27 @@ namespace AzDoAgentDrainer
             }
             else
             {
-                logger.LogInformation("Context built {ServerCount} {AgentCount}", serverContext.Count, serverContext.Aggregate(0, (acc, x) => acc + x.Agents.Count));;
+                logger.LogInformation("Context built {ServerCount} {AgentCount}", serverContext.Count, serverContext.Aggregate(0, (acc, x) => acc + x.Agents.Count()));;
             };            
 
             return new Context(serverContext, logger);
         }
 
 
-        private static async Task<List<WrappedAgent>> GetAgents(TaskAgentHttpClient client, ILogger logger)
+        private static async Task<IEnumerable<Agent>> GetAllAgentsForAzureDevopsInstance(TaskAgentHttpClient client, ILogger logger)
         {
-            var matchingWrappedAgents = new List<WrappedAgent>();
+            IEnumerable<Agent> allAgents = new List<Agent>();
             var pools = await client.GetAgentPoolsAsync();
 
             foreach (var p in pools.Where(x => x.IsHosted == false))
             {
-                var agents = await client.GetAgentsAsync(p.Id, includeCapabilities: true);
-                var wrappedAgents = agents.Select(x => new WrappedAgent { PoolID = p.Id, AgentId = x.Id, Agent = x, AgentName = x.Name, ComputerName = x.SystemCapabilities["Agent.ComputerName"] });
+                var agentsInPool = await client.GetAgentsAsync(p.Id, includeCapabilities: true);
+                var convertedAgents = agentsInPool.Select(x => new Agent(x, p.Id));
 
-                matchingWrappedAgents = matchingWrappedAgents.Concat(wrappedAgents).ToList();
+                allAgents = allAgents.Concat(convertedAgents);
             }
 
-            return matchingWrappedAgents;
+            return allAgents;
         }
     }
 }

@@ -32,11 +32,11 @@ namespace AzDoAgentDrainer.CLI
 
             Console.WriteLine("Agent Context Built");
 
-            await agentsContext.Drain();
+            await agentsContext.DrainAsync();
             
             Console.WriteLine("All Jobs Finished again");
             Console.ReadLine();
-            await agentsContext.Enable();
+            await agentsContext.EnableAsync();
         }
 
         private static Microsoft.Extensions.Logging.ILogger GetLogger()
