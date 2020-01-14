@@ -37,19 +37,17 @@ namespace AzDoAgentDrainer
             {
                 foreach (var agent in abp)
                 {
-                    // Some agents are disabled. We need to keep track of the ones to be re-enabled. 
-                    if (agent.Agent.Enabled ?? false)
+                    if (agent.Reenable) // If an agent can be renabled it must have been enabled to begin with 
                     {
-                        agent.Reenable = true;
-                        logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);                        
+                        logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
                     }
                     else
                     {
-                        logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.AgentName, abp.Key, sc.Client.BaseAddress);
-                    }
+                        logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
+                    }                                       
 
-                    agent.Agent.Enabled = false;
-                    await sc.Client.UpdateAgentAsync(agent.PoolID, agent.Agent.Id, agent.Agent);
+                    var taskAgent = new TaskAgent(agent.Name) { Enabled = false, Id = agent.Id };
+                    await sc.Client.UpdateAgentAsync(agent.PoolID, taskAgent.Id, taskAgent);
                 }
 
                 // Wait 15 seconds
@@ -84,13 +82,12 @@ namespace AzDoAgentDrainer
 
             // Iterate over each pool and enable agents in parallel
             await Task.WhenAll(agentsByPool.Select(async abp => {
-                foreach (var a in abp)
+                foreach (var agent in abp)
                 {
-                    logger.LogInformation("Enabling agent {AgentName} {AgentPoolId} {AgentServer}", a.AgentName, abp.Key, sc.Client.BaseAddress);
-                    var agent = await sc.Client.GetAgentAsync(abp.Key, a.AgentId);
-                    agent.Enabled = true;
+                    logger.LogInformation("Enabling agent {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
 
-                    await sc.Client.UpdateAgentAsync(abp.Key, a.AgentId, agent);
+                    var taskAgent = new TaskAgent(agent.Name) { Enabled = true, Id = agent.Id };
+                    await sc.Client.UpdateAgentAsync(abp.Key, taskAgent.Id, taskAgent);
                 }
             }));
         }
