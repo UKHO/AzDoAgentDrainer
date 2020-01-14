@@ -9,10 +9,9 @@ using System.Threading.Tasks;
 
 namespace AzDoAgentDrainer
 {
-    public class Context
+    public class Context : IDrainerContext
     {
         private readonly ILogger logger;
-
         public List<ServerContext> Servers { get; } = new List<ServerContext>();
 
         public Context(List<ServerContext> Servers, ILogger logger)
@@ -21,7 +20,7 @@ namespace AzDoAgentDrainer
             this.logger = logger;
         }
 
-        public async Task Drain()
+        public async Task DrainAsync()
         {
             logger.LogInformation("Draining agents");
             // Iterate over each server in parallel
@@ -70,7 +69,7 @@ namespace AzDoAgentDrainer
             }));
         }
 
-        public async Task Enable()
+        public async Task EnableAsync()
         {
             logger.LogInformation("Renabling Agents");
             // Iterate over each server in parallel
