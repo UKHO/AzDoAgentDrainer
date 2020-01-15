@@ -1,5 +1,4 @@
-﻿
-using Microsoft.TeamFoundation.DistributedTask.WebApi;
+﻿using Microsoft.TeamFoundation.DistributedTask.WebApi;
 using System;
 using System.Collections.Generic;
 
@@ -7,16 +6,16 @@ namespace AzDoAgentDrainer
 {
     public class Agent
     {
-        public string ComputerName { get; set; }
-        public DateTime CreatedOn { get; set; }
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public int PoolID { get; set; }
-        public string ProvisioningState { get; set; }
+        public string ComputerName { get; }
+        public DateTime CreatedOn { get; }
+        public int Id { get; }
+        public string Name { get; }
+        public int PoolID { get; }
+        public string ProvisioningState { get; }
         public bool Reenable { get; } = false;
-        public int Status { get; set; }
-        public string OSDescription { get; set; }
-        public IDictionary<string, string> Capabilities { get; set; }
+        public int Status { get; }
+        public string OSDescription { get; }
+        public IDictionary<string, string> Capabilities { get; }
 
         public Agent(TaskAgent taskAgent, int PoolId)
         {

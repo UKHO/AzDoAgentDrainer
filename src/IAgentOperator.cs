@@ -2,7 +2,7 @@
 
 namespace AzDoAgentDrainer
 {
-    public interface IDrainerContext{        
+    public interface IAgentOperator{        
         Task DrainAsync();
         Task EnableAsync();
     }

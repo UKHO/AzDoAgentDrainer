@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AzDoAgentDrainer
 {
-    public class ServerContext
+    public class AzureDevopsInstance
     {
         public TaskAgentHttpClient Client { get; set; }
         public IEnumerable<Agent> Agents { get; set; }

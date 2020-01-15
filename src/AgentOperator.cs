@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 
 namespace AzDoAgentDrainer
 {
-    public class Context : IDrainerContext
+    public class AgentOperator : IAgentOperator
     {
         private readonly ILogger logger;
-        public List<ServerContext> Servers { get; } = new List<ServerContext>();
+        private List<AzureDevopsInstance> AzureDevopsInstances { get; } = new List<AzureDevopsInstance>();
 
-        public Context(List<ServerContext> Servers, ILogger logger)
+        public AgentOperator(List<AzureDevopsInstance> instances, ILogger logger)
         {
-            this.Servers = Servers;
+            this.AzureDevopsInstances = instances;
             this.logger = logger;
         }
 
@@ -24,13 +24,13 @@ namespace AzDoAgentDrainer
         {
             logger.LogInformation("Draining agents");
             // Iterate over each server in parallel
-            await Task.WhenAll(Servers.Select(sc => DrainByServer(sc)));
+            await Task.WhenAll(AzureDevopsInstances.Select(sc => DrainByInstance(sc)));
             logger.LogDebug("Agents drained");
         }
 
-        private async Task DrainByServer(ServerContext sc)
+        private async Task DrainByInstance(AzureDevopsInstance azInstance)
         {
-            var agentsByPool = sc.Agents.GroupBy(p => p.PoolID);
+            var agentsByPool = azInstance.Agents.GroupBy(p => p.PoolID);
 
             // Iterate over each pool and disable agents in parallel
             await Task.WhenAll(agentsByPool.Select(async abp =>
@@ -39,15 +39,15 @@ namespace AzDoAgentDrainer
                 {
                     if (agent.Reenable) // If an agent can be renabled it must have been enabled to begin with 
                     {
-                        logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
+                        logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
                     }
                     else
                     {
-                        logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
+                        logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
                     }                                       
 
                     var taskAgent = new TaskAgent(agent.Name) { Enabled = false, Id = agent.Id };
-                    await sc.Client.UpdateAgentAsync(agent.PoolID, taskAgent.Id, taskAgent);
+                    await azInstance.Client.UpdateAgentAsync(agent.PoolID, taskAgent.Id, taskAgent);
                 }
 
                 // Wait 15 seconds
@@ -62,7 +62,7 @@ namespace AzDoAgentDrainer
                             result.Result.Where(a => a.AssignedRequest != null)
                                          .ForEach(x => logger.LogInformation("Waiting for {job} to finish", x.AssignedRequest.JobId)); ;
                         })
-                    .ExecuteAsync(async () => await sc.Client.GetAgentsAsync(poolId: abp.Key, includeAssignedRequest: true));
+                    .ExecuteAsync(async () => await azInstance.Client.GetAgentsAsync(poolId: abp.Key, includeAssignedRequest: true));
 
             }));
         }
@@ -71,11 +71,11 @@ namespace AzDoAgentDrainer
         {
             logger.LogInformation("Renabling Agents");
             // Iterate over each server in parallel
-            await Task.WhenAll(Servers.Select(sc => EnableByServer(sc)));
+            await Task.WhenAll(AzureDevopsInstances.Select(sc => EnableByInstance(sc)));
             logger.LogDebug("Agents reenabled");
         }
 
-        private async Task EnableByServer(ServerContext sc)
+        private async Task EnableByInstance(AzureDevopsInstance sc)
         {
             var agentsByPool = sc.Agents.Where(x => x.Reenable)
                                         .GroupBy(x => x.PoolID);

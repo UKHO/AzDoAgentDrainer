@@ -10,33 +10,33 @@ using System.Threading.Tasks;
 
 namespace AzDoAgentDrainer
 {
-    public class AgentContextBuilder
+    public class AgentOperatorBuilder
     {
         private List<VssConnection> vssConnections = new List<VssConnection>();                
         private ILogger logger = NullLogger.Instance;
         private Func<IEnumerable<Agent>, IEnumerable<Agent>> filter;     
 
-        public AgentContextBuilder AddServer(Uri AzDoUri, string pat)
+        public AgentOperatorBuilder AddInstance(Uri AzDoUri, string pat)
         {
             vssConnections.Add(new VssConnection(AzDoUri, new VssBasicCredential(string.Empty, pat)));            
             return this;
         }
 
-        public AgentContextBuilder AddLogger(ILogger logger)
+        public AgentOperatorBuilder AddLogger(ILogger logger)
         {
             this.logger = logger;
             return this;
         }
 
-        public AgentContextBuilder SelectAgents(Func<IEnumerable<Agent>, IEnumerable<Agent>> filter)
+        public AgentOperatorBuilder SelectAgents(Func<IEnumerable<Agent>, IEnumerable<Agent>> filter)
         {
             this.filter = filter;
             return this;
         }
 
-        public async Task<Context> Build()
+        public async Task<AgentOperator> Build()
         {
-            var serverContext = new List<ServerContext>();
+            var azureDevopsInstances = new List<AzureDevopsInstance>();
 
             if(filter == null) {
                 throw new Exception("SelectAgents must be configured");
@@ -45,14 +45,14 @@ namespace AzDoAgentDrainer
             foreach (var connection in vssConnections)
             {
                 var client = connection.GetClient<TaskAgentHttpClient>();
-                var agents = await GetAllAgentsForAzureDevopsInstance(client, logger);
+                var agents = await GetAllAgentsForInstance(client, logger);
 
                 agents = filter(agents).ToList();
 
                 if(agents.Any())
                 {
                     logger.LogDebug("{server} and associated agents added to server context", connection.Uri);
-                    serverContext.Add(new ServerContext() { Client = client, Agents = agents});
+                    azureDevopsInstances.Add(new AzureDevopsInstance() { Client = client, Agents = agents});
                 }
                 else
                 {
@@ -61,21 +61,21 @@ namespace AzDoAgentDrainer
             }
 
             // Check we have agents at all. There should be at least one.
-            if (!serverContext.Any())
+            if (!azureDevopsInstances.Any())
             {
                 logger.LogError("No matching agents found in any server");
                 throw new Exception("No matching agents found in any server");
             }
             else
             {
-                logger.LogInformation("Context built {ServerCount} {AgentCount}", serverContext.Count, serverContext.Aggregate(0, (acc, x) => acc + x.Agents.Count()));;
+                logger.LogInformation("Context built {ServerCount} {AgentCount}", azureDevopsInstances.Count, azureDevopsInstances.Aggregate(0, (acc, x) => acc + x.Agents.Count()));;
             };            
 
-            return new Context(serverContext, logger);
+            return new AgentOperator(azureDevopsInstances, logger);
         }
 
 
-        private static async Task<IEnumerable<Agent>> GetAllAgentsForAzureDevopsInstance(TaskAgentHttpClient client, ILogger logger)
+        private async Task<IEnumerable<Agent>> GetAllAgentsForInstance(TaskAgentHttpClient client, ILogger logger)
         {
             IEnumerable<Agent> allAgents = new List<Agent>();
             var pools = await client.GetAgentPoolsAsync();

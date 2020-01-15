@@ -20,10 +20,10 @@ namespace AzDoAgentDrainer.CLI
 
             var computerName = args[4];            
 
-            var agentsContext = await new AgentContextBuilder()            
+            var agentsContext = await new AgentOperatorBuilder()            
                                     .AddLogger(GetLogger())
-                                    .AddServer(tfs, tfsPat)                                    
-                                    .AddServer(azdo, azdoPat)
+                                    .AddInstance(tfs, tfsPat)                                    
+                                    .AddInstance(azdo, azdoPat)
                                     .SelectAgents(x =>
                                     {
                                         return x.Where(a => a.ComputerName.ToUpper() == computerName.ToUpper());
