@@ -35,35 +35,37 @@ namespace AzDoAgentDrainer
             // Iterate over each pool and disable agents in parallel
             await Task.WhenAll(agentsByPool.Select(async abp =>
             {
-                foreach (var agent in abp)
+                await Task.WhenAll(abp.Select(async agent =>
                 {
-                    if (agent.Reenable) // If an agent can be renabled it must have been enabled to begin with 
+                    if (agent.Reenable) // If an agent can be renabled it must be enabled
                     {
                         logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
+
+                        var realAgent = await azInstance.Client.GetAgentAsync(agent.PoolID, agent.Id);
+                        realAgent.Enabled = false;
+                        await azInstance.Client.UpdateAgentAsync(agent.PoolID, agent.Id, realAgent); // Update the agent so that it disabled
                     }
                     else
                     {
                         logger.LogInformation("{AgentName} already disabled {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
-                    }                                       
+                    }                    
 
-                    var taskAgent = new TaskAgent(agent.Name) { Enabled = false, Id = agent.Id };
-                    await azInstance.Client.UpdateAgentAsync(agent.PoolID, taskAgent.Id, taskAgent);
-                }
+                    // Wait 15 seconds incase something was assigned to this agent in the time it took for the network traffic to send from client to server
+                    await Task.Delay(15000);
 
-                // Wait 15 seconds
-                await Task.Delay(15000);
-
-                // Wait until no jobs are running.
-                await Policy
-                    .HandleResult<List<TaskAgent>>(x => x.Any(a => a.AssignedRequest != null))
-                    .WaitAndRetryAsync(20, x => TimeSpan.FromSeconds(30),
-                        (result, timespan, context) =>
-                        {
-                            result.Result.Where(a => a.AssignedRequest != null)
-                                         .ForEach(x => logger.LogInformation("Waiting for {job} to finish", x.AssignedRequest.JobId)); ;
-                        })
-                    .ExecuteAsync(async () => await azInstance.Client.GetAgentsAsync(poolId: abp.Key, includeAssignedRequest: true));
-
+                    // Check if any jobs are running on the agent. If they, check every 30 seconds until the job ends
+                    await Policy
+                            .HandleResult<TaskAgent>(x => x.AssignedRequest != null)
+                            .WaitAndRetryAsync(40, x => TimeSpan.FromSeconds(30),
+                                (result, timespan, content) =>
+                                {
+                                    if (result.Result.AssignedRequest != null)
+                                    {
+                                        logger.LogInformation("{agentName} waiting for {job} to finish {poolId}", agent.Name, result.Result.AssignedRequest.JobId, abp.Key);
+                                    }
+                                })
+                            .ExecuteAsync(async () => await azInstance.Client.GetAgentAsync(poolId: abp.Key, agentId: agent.Id, includeAssignedRequest: true));
+                }));
             }));
         }
 
@@ -75,19 +77,21 @@ namespace AzDoAgentDrainer
             logger.LogDebug("Agents reenabled");
         }
 
-        private async Task EnableByInstance(AzureDevopsInstance sc)
+        private async Task EnableByInstance(AzureDevopsInstance azInstance)
         {
-            var agentsByPool = sc.Agents.Where(x => x.Reenable)
+            var agentsByPool = azInstance.Agents.Where(x => x.Reenable)
                                         .GroupBy(x => x.PoolID);
 
             // Iterate over each pool and enable agents in parallel
             await Task.WhenAll(agentsByPool.Select(async abp => {
                 foreach (var agent in abp)
                 {
-                    logger.LogInformation("Enabling agent {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, sc.Client.BaseAddress);
+                    logger.LogInformation("Enabling agent {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
 
-                    var taskAgent = new TaskAgent(agent.Name) { Enabled = true, Id = agent.Id };
-                    await sc.Client.UpdateAgentAsync(abp.Key, taskAgent.Id, taskAgent);
+                    var realAgent = await azInstance.Client.GetAgentAsync(agent.PoolID, agent.Id);
+                    realAgent.Enabled = true;
+
+                    await azInstance.Client.UpdateAgentAsync(abp.Key, agent.Id, realAgent);
                 }
             }));
         }
