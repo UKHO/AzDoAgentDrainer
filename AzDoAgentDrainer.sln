@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureDevopsAgentOperator.CL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureDevopsAgentOperator", "src\AzureDevopsAgentOperator\AzureDevopsAgentOperator.csproj", "{089C70FE-1F52-4501-A29F-75FE82BA89D0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureVmAgentsService", "src\AzureVmAgentsService\AzureVmAgentsService.csproj", "{7B97B131-8C97-4345-BC17-71C8DB14567D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,18 @@ Global
 		{089C70FE-1F52-4501-A29F-75FE82BA89D0}.Release|x64.Build.0 = Release|Any CPU
 		{089C70FE-1F52-4501-A29F-75FE82BA89D0}.Release|x86.ActiveCfg = Release|Any CPU
 		{089C70FE-1F52-4501-A29F-75FE82BA89D0}.Release|x86.Build.0 = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|x64.Build.0 = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Debug|x86.Build.0 = Debug|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|x64.ActiveCfg = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|x64.Build.0 = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|x86.ActiveCfg = Release|Any CPU
+		{7B97B131-8C97-4345-BC17-71C8DB14567D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
