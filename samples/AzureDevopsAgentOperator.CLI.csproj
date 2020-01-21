@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\AzDoAgentDrainer.csproj" />
+    <ProjectReference Include="..\src\AzureDevopsAgentOperator\AzureDevopsAgentOperator.csproj" />
   </ItemGroup>
 
 </Project>

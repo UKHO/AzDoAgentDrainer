@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using AzureDevopsAgentOperator;
+using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.DistributedTask.WebApi;
-using Microsoft.VisualStudio.Services.Common;
 using Polly;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AzDoAgentDrainer
+namespace AzureDevopsAgentOperator
 {
     public class AgentOperator : IAgentOperator
     {

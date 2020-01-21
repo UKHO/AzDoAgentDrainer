@@ -1,7 +1,7 @@
 ﻿using Microsoft.TeamFoundation.DistributedTask.WebApi;
 using System.Collections.Generic;
 
-namespace AzDoAgentDrainer
+namespace AzureDevopsAgentOperator
 {
     public class AzureDevopsInstance
     {
