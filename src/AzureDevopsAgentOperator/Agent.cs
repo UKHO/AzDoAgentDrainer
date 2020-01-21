@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace AzDoAgentDrainer
+namespace AzureDevopsAgentOperator
 {
     public class Agent
     {

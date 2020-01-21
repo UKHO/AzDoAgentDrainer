@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace AzDoAgentDrainer
+namespace AzureDevopsAgentOperator
 {
     public interface IAgentOperator{        
         Task DrainAsync();
