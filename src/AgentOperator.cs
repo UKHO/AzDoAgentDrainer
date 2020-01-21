@@ -77,10 +77,23 @@ namespace AzDoAgentDrainer
             logger.LogDebug("Agents reenabled");
         }
 
-        private async Task EnableByInstance(AzureDevopsInstance azInstance)
+        public async Task EnableAllAsync()
         {
-            var agentsByPool = azInstance.Agents.Where(x => x.Reenable)
-                                        .GroupBy(x => x.PoolID);
+            logger.LogInformation("Renabling Agents");
+            // Iterate over each server in parallel
+            await Task.WhenAll(AzureDevopsInstances.Select(sc => EnableByInstance(sc, true)));
+            logger.LogDebug("Agents reenabled");
+        }
+
+
+        private async Task EnableByInstance(AzureDevopsInstance azInstance, bool includeDisabled = false)
+        {
+            var agents = azInstance.Agents;
+
+            if (includeDisabled == false)
+                agents = agents.Where(x => x.Reenable); // Filter out any disabled agents
+            
+            var agentsByPool = agents.GroupBy(x => x.PoolID);
 
             // Iterate over each pool and enable agents in parallel
             await Task.WhenAll(agentsByPool.Select(async abp => {
@@ -95,5 +108,7 @@ namespace AzDoAgentDrainer
                 }
             }));
         }
+
+
     }
 }
