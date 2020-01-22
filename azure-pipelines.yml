@@ -4,3 +4,8 @@ steps:
 - bash: dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
 - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
   artifact: AzureVmAgentsService
+- task : GitHubRelease@1
+  inputs:
+     gitHubConnection: UKHO
+     repositoryName: UKHO/AzDoAgentDrainer
+     isPreRelease: true
