@@ -13,5 +13,5 @@ steps:
      isPreRelease: true
      tagSource: userSpecifiedTag
      tag: $(Build.BuildNumber) 
-     assets: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService/**/*
+     assets: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService.zip
 
