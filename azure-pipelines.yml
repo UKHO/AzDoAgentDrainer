@@ -3,7 +3,9 @@ pool:
 steps:
 - bash: |
     dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
+    ls
     zip –r $(Build.ArtifactStagingDirectory)/AzureVmAgentsService.zip $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
+    ls
 # - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
 #   artifact: AzureVmAgentsService
 - task : GitHubRelease@1
