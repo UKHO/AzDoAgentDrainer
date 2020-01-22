@@ -6,6 +6,6 @@ steps:
   artifact: AzureVmAgentsService
 - task : GitHubRelease@1
   inputs:
-     gitHubConnection: UKHO
+     gitHubConnection: UKHO GitHub
      repositoryName: UKHO/AzDoAgentDrainer
      isPreRelease: true
