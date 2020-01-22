@@ -1,4 +1,4 @@
-# The "drain private Azure DevOps agents running on a Azure VM" application
+# The "disable private Azure DevOps agents running on a Azure VM" application
 
 Gracefully drains an Azure VM that is running private Azure DevOps agent of any active jobs. This allows the VM to be restarted saftely without disrupting any running jobs or builds on that VM.
 
