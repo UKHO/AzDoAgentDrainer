@@ -1,4 +1,6 @@
 pool:
   vmImage: 'ubuntu-latest'
 steps:
-- bash: echo "Hello world"
+- bash: dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
+- publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
+  artifact: AzureVmAgentsService
