@@ -1,0 +1,22 @@
+pool:
+  vmImage: 'ubuntu-latest'
+steps:
+- bash: |
+    dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
+    cd $(Build.ArtifactStagingDirectory)
+    zip -r azurevmagentservice.zip AzureVmAgentsService
+  displayName: Build, publish and zip in ArtifactStaging directory
+
+- publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
+  artifact: AzureVmAgentsService
+  displayName: Publish to Azure DevOps
+
+- task : GitHubRelease@1
+  inputs:
+     gitHubConnection: UKHO GitHub
+     repositoryName: UKHO/AzDoAgentDrainer     
+     tagSource: userSpecifiedTag
+     tag: v0.1.0 
+     assets: $(Build.ArtifactStagingDirectory)/azurevmagentservice.zip
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  displayName: Publish to GitHub
