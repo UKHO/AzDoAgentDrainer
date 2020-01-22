@@ -9,3 +9,5 @@ steps:
      gitHubConnection: UKHO GitHub
      repositoryName: UKHO/AzDoAgentDrainer
      isPreRelease: true
+     tagSource: userSpecifiedTag
+     tag: $(Build.BuildNumber) 
