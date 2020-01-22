@@ -43,7 +43,7 @@ namespace AzureVmAgentsService
                     _logger.LogInformation("DocumentIncarnation changed from {previous} to {current}", _documentIncarnation, scheduldedEventsReponse.DocumentIncarnation);
                     _documentIncarnation = scheduldedEventsReponse.DocumentIncarnation; // Update the DocumentIncarnation so we don't try to handle the SchdeduldedEvent again.
 
-                    var relevantEvents = scheduldedEventsReponse.Events.Where(x => x.Resources.Exists(x => x.ToUpper() == _computerName.ToUpper()));
+                    var relevantEvents = scheduldedEventsReponse.Events.Where(x => x.Resources.Exists(affectedServer => affectedServer.ToUpper() == _computerName.ToUpper()));
                     _logger.LogInformation("Found {eventcount}", relevantEvents.Count());
                     relevantEvents.ToList().ForEach(x => _logger.LogInformation($"EventId: {x.EventId}, EventType: {x.EventType}, NotBefore: {x.NotBefore}"));
 
