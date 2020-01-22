@@ -1,9 +1,11 @@
 pool:
   vmImage: 'ubuntu-latest'
 steps:
-- bash: dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
-- publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
-  artifact: AzureVmAgentsService
+- bash: |
+    dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
+    zip –r $(Build.ArtifactStagingDirectory)/AzureVmAgentsService.zip $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
+# - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
+#   artifact: AzureVmAgentsService
 - task : GitHubRelease@1
   inputs:
      gitHubConnection: UKHO GitHub
