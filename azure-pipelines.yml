@@ -5,7 +5,7 @@ steps:
     dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
     cd $(Build.ArtifactStagingDirectory)
     ls
-    zip –r AzureVmAgentsService.zip AzureVmAgentsService
+    zip -r k.zip AzureVmAgentsService
     ls
 # - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
 #   artifact: AzureVmAgentsService
