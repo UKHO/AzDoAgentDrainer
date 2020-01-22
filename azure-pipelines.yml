@@ -16,7 +16,7 @@ steps:
      gitHubConnection: UKHO GitHub
      repositoryName: UKHO/AzDoAgentDrainer     
      tagSource: userSpecifiedTag
-     tag: v0.1.0 
+     tag: v0.2.0 
      assets: $(Build.ArtifactStagingDirectory)/azurevmagentservice.zip
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   displayName: Publish to GitHub
