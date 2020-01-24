@@ -10,6 +10,7 @@ steps:
     dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
     cd $(Build.ArtifactStagingDirectory)
     zip -r azurevmagentservice.zip AzureVmAgentsService
+    tar -zcvf azurevmagentservice.tar.gz AzureVmAgentsService
   displayName: Build, publish and zip in ArtifactStaging directory
 
 - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
@@ -21,7 +22,9 @@ steps:
      gitHubConnection: UKHO GitHub
      repositoryName: UKHO/AzDoAgentDrainer     
      tagSource: userSpecifiedTag
-     tag: v0.2.0 
-     assets: $(Build.ArtifactStagingDirectory)/azurevmagentservice.zip
+     tag: v0.2.1 
+     assets: |
+       $(Build.ArtifactStagingDirectory)/azurevmagentservice.zip
+       $(Build.ArtifactStagingDirectory)/azurevmagentservice.tar.gz
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   displayName: Publish to GitHub
