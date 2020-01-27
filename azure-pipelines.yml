@@ -5,12 +5,12 @@ steps:
   inputs:
     packageType: 'sdk'
     version: '3.1.x'
-
 - bash: |
     dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)/AzureVmAgentsService ./src/AzureVmAgentsService/AzureVmAgentsService.csproj
-    cd $(Build.ArtifactStagingDirectory)
-    zip -r azurevmagentservice.zip AzureVmAgentsService
-    tar -zcvf azurevmagentservice.tar.gz AzureVmAgentsService
+    cd $(Build.ArtifactStagingDirectory)    
+    tar -C ./AzureVmAgentsService/ -zcvf azurevmagentservice.tar.gz .
+    cd ./AzureVmAgentsService
+    zip -r ../azurevmagentservice.zip *
   displayName: Build, publish and zip in ArtifactStaging directory
 
 - publish: $(Build.ArtifactStagingDirectory)/AzureVmAgentsService
