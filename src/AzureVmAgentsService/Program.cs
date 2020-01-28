@@ -42,18 +42,21 @@ namespace AzureVmAgentsService
                         var config = sp.GetService<IConfiguration>().GetSection("drainer").Get<AzureDevopsConfig>();
                         var loggerFactory = sp.GetService<ILoggerFactory>();
                         var hostEnv = sp.GetService<IHostEnvironment>();
+                        var logger = loggerFactory.CreateLogger("AgentOperator");
 
-                        var computerName = hostEnv.IsProduction() ? Environment.MachineName : config.ComputerName;
+                        var computerName = hostEnv.IsProduction() ? Environment.MachineName.ToUpper() : config.ComputerName.ToUpper();
 
                         if (string.IsNullOrEmpty(computerName))
                             throw new Exception("A drainer:computername has not been set in configuration");
 
+                        logger.LogInformation("MachineName is {machineName}", computerName);
+
                         return new AgentOperatorBuilder()
-                          .AddLogger(loggerFactory.CreateLogger("AgentOperator"))
+                          .AddLogger(logger)
                           .AddInstance(config.Uri, config.Pat)
                           .SelectAgents(x =>
                           {
-                              return x.Where(agent => agent.ComputerName.ToUpper() == computerName);
+                              return x.Where(agent => agent.ComputerName.ToUpper() == computerName.ToUpper());
                           })
                           .Build().Result;
                     });
