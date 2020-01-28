@@ -36,6 +36,7 @@ namespace AzureVmAgentsService
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                _logger.LogDebug("Checking for ScheduldedEvents");
                 var scheduldedEventsReponse = await _instanceMetadataServiceAPI.GetScheduldedEvents();
 
                 if (_documentIncarnation != scheduldedEventsReponse.DocumentIncarnation) // Then a new event has occured and we need to check if something about to happen to this VM.
@@ -60,8 +61,10 @@ namespace AzureVmAgentsService
                     relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowlding {x.EventId}"));
                     _ = await _instanceMetadataServiceAPI.AcknowledgeScheduldedEvent(new { StartRequests = relevantEvents });
                 }
+                await Task.Delay(10000, stoppingToken);
             }
-            await Task.Delay(10000, stoppingToken);
+            _logger.LogWarning("Exited checking for ScheduldedEvents");
+
         }
     }
 }
