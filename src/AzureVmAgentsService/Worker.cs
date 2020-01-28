@@ -25,7 +25,7 @@ namespace AzureVmAgentsService
         {
             // Query the Instance Metadata Service for the VM name. This may be different to the computer name. The VMName is used in the schdeduled events to specify the machines that may be affcted.
             var _computerName = await _instanceMetadataServiceAPI.GetVMName();
-            _logger.LogInformation("VMName ${wmvname}", _computerName);
+            _logger.LogInformation("Azure VMName {wmvname}", _computerName);
 
             // Discover the initial documentIncarnation number for comparsion later on to see if it has changed
             var events = await _instanceMetadataServiceAPI.GetScheduldedEvents();
