@@ -1,5 +1,4 @@
-﻿using AzureDevopsAgentOperator;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.DistributedTask.WebApi;
 using Polly;
 using System;
@@ -37,7 +36,7 @@ namespace AzureDevopsAgentOperator
             {
                 await Task.WhenAll(abp.Select(async agent =>
                 {
-                    if (agent.Reenable) // If an agent can be renabled it must be enabled
+                    if (agent.AllowOperations) // An agent can be operated on if it was enabled when agents were discovered. 
                     {
                         logger.LogInformation("Disabling {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
 
@@ -83,15 +82,20 @@ namespace AzureDevopsAgentOperator
             // Iterate over each server in parallel
             await Task.WhenAll(AzureDevopsInstances.Select(sc => EnableByInstance(sc, true)));
             logger.LogDebug("Agents reenabled");
+
+            // Switch AllowOperations to true for all agents as we have just operated on them all
+            AzureDevopsInstances.ForEach(x => x.Agents.ToList().ForEach(y => y.EnableAllowOperations()));
         }
 
 
-        private async Task EnableByInstance(AzureDevopsInstance azInstance, bool includeDisabled = false)
+        private async Task EnableByInstance(AzureDevopsInstance azInstance, bool operateOnAllAgents = false)
         {
+            // Selects ALL agents
             var agents = azInstance.Agents;
 
-            if (includeDisabled == false)
-                agents = agents.Where(x => x.Reenable); // Filter out any disabled agents
+            // Filter out agents which we can't operate on. This is the default behaviour
+            if (operateOnAllAgents == false)
+                agents = agents.Where(x => x.AllowOperations); 
             
             var agentsByPool = agents.GroupBy(x => x.PoolID);
 
