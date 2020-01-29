@@ -12,7 +12,7 @@ namespace AzureDevopsAgentOperator
         public string Name { get; }
         public int PoolID { get; }
         public string ProvisioningState { get; }
-        public bool Reenable { get; } = false;
+        public bool AllowOperations { get; private set; } = false;
         public int Status { get; }
         public string OSDescription { get; }
         public IDictionary<string, string> Capabilities { get; }
@@ -23,12 +23,17 @@ namespace AzureDevopsAgentOperator
             this.CreatedOn = taskAgent.CreatedOn;
             this.Id = taskAgent.Id;
             this.Name = taskAgent.Name;
-            this.Reenable = taskAgent.Enabled ?? false;
+            this.AllowOperations = taskAgent.Enabled ?? false;
             this.PoolID = PoolId;
             this.ProvisioningState = taskAgent.ProvisioningState;
             this.Status = (int)taskAgent.Status;
             this.OSDescription = taskAgent.OSDescription;
             this.Capabilities = taskAgent.SystemCapabilities;
+        }
+
+        public void EnableAllowOperations()
+        {
+            this.AllowOperations = true;
         }
     }    
 }
