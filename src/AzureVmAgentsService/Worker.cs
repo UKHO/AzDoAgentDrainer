@@ -5,6 +5,7 @@ using AzureDevopsAgentOperator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using AzureVmAgentsService.Models;
+using Refit;
 
 namespace AzureVmAgentsService
 {
@@ -45,21 +46,32 @@ namespace AzureVmAgentsService
                     _documentIncarnation = scheduldedEventsReponse.DocumentIncarnation; // Update the DocumentIncarnation so we don't try to handle the SchdeduldedEvent again.
 
                     var relevantEvents = scheduldedEventsReponse.Events.Where(x => x.Resources.Exists(affectedServer => affectedServer.ToUpper() == _computerName.ToUpper()));
-                    _logger.LogInformation("Found {eventcount}", relevantEvents.Count());
-                    relevantEvents.ToList().ForEach(x => _logger.LogInformation($"EventId: {x.EventId}, EventType: {x.EventType}, NotBefore: {x.NotBefore}"));
-
-                    if (relevantEvents.Any(x => string.Equals(x.EventType, "Reboot", System.StringComparison.OrdinalIgnoreCase) || string.Equals(x.EventType, "Redeploy", System.StringComparison.OrdinalIgnoreCase)))
+                    if (relevantEvents.Any())
                     {
-                        await _agentsContext.DrainAsync();
-                    }
-                    else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", System.StringComparison.OrdinalIgnoreCase)))
-                    {
-                        // Remove the agent
-                    }
+                        _logger.LogInformation("Schedulded events for this server {eventcount}", relevantEvents.Count());
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"EventId: {x.EventId}, EventType: {x.EventType}, NotBefore: {x.NotBefore}"));
 
-                    _logger.LogInformation("Acknowlding {events}", relevantEvents);
-                    relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowlding {x.EventId}"));
-                    _ = await _instanceMetadataServiceAPI.AcknowledgeScheduldedEvent(new { StartRequests = relevantEvents });
+                        if (relevantEvents.Any(x => string.Equals(x.EventType, "Reboot", System.StringComparison.OrdinalIgnoreCase) || string.Equals(x.EventType, "Redeploy", System.StringComparison.OrdinalIgnoreCase)))
+                        {
+                            await _agentsContext.DrainAsync();
+                        }
+                        else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", System.StringComparison.OrdinalIgnoreCase)))
+                        {
+                            // Remove the agent
+                        }
+
+                        _logger.LogInformation("Acknowlding {events}", relevantEvents);
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowlding {x.EventId}"));
+                        try
+                        {
+                            _ = await _instanceMetadataServiceAPI.AcknowledgeScheduldedEvent(new { StartRequests = relevantEvents });
+                        }
+                        catch (ApiException apiEx)
+                        {
+                            _logger.LogError("Error acknowledging events {errorStatus} {errorContent}", apiEx.StatusCode, apiEx.Content);
+                            throw;                            
+                        }                        
+                    }                   
                 }
                 await Task.Delay(10000, stoppingToken);
             }
