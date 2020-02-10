@@ -6,5 +6,6 @@ namespace AzureDevopsAgentOperator
         Task DrainAsync();
         Task EnableAsync();
         Task EnableAllAsync();
+        Task DeleteAllAsync();
     }
 }
