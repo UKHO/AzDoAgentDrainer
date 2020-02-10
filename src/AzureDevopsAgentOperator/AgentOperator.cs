@@ -68,6 +68,33 @@ namespace AzureDevopsAgentOperator
             }));
         }
 
+        public async Task DeleteAllAsync()
+        {
+            logger.LogInformation("Deleting Agents");
+            // Iteate over each server in parallel
+            await Task.WhenAll(AzureDevopsInstances.Select(sc => DeleteByInstance(sc)));
+
+            // Remove all the agents from the context to ensure that we are unable to accidentaly try enabling or disabling deleted agents.
+            foreach (var azureDevOpsInstance in AzureDevopsInstances)
+            {
+                logger.LogDebug("Removing agents from operator context {AgentServer}", azureDevOpsInstance.Client.BaseAddress);
+                azureDevOpsInstance.Agents = new List<Agent>();
+            }
+        }
+
+        private async Task DeleteByInstance(AzureDevopsInstance azInstance)
+        {
+            var agentsByPool = azInstance.Agents.GroupBy(p => p.PoolID);
+
+            await Task.WhenAll(agentsByPool.Select(async abp => {
+                foreach (var agent in abp)
+                {
+                    logger.LogInformation("Deleting agent {AgentName} {AgentPoolId} {AgentServer}", agent.Name, abp.Key, azInstance.Client.BaseAddress);
+                    await azInstance.Client.DeleteAgentAsync(agent.PoolID, agent.Id);
+                }
+            }));
+        }
+
         public async Task EnableAsync()
         {
             logger.LogInformation("Renabling Agents");

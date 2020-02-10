@@ -57,11 +57,13 @@ namespace AzureVmAgentsService
                         }
                         else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", System.StringComparison.OrdinalIgnoreCase)))
                         {
-                            // Remove the agent
+                            // Ensure all the agents are disabled before deleting them
+                            await _agentsContext.DrainAsync();
+                            await _agentsContext.DeleteAllAsync();                            
                         }
 
-                        _logger.LogInformation("Acknowlding {events}", relevantEvents);
-                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowlding {x.EventId}"));
+                        _logger.LogInformation("Acknowledging {events}", relevantEvents);
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowledging {x.EventId}"));
                         try
                         {
                             _ = await _instanceMetadataServiceAPI.AcknowledgeScheduldedEvent(new { StartRequests = relevantEvents });
