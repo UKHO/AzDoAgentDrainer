@@ -57,7 +57,9 @@ namespace AzureVmAgentsService
                         }
                         else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", System.StringComparison.OrdinalIgnoreCase)))
                         {
-                            // Remove the agent
+                            // Ensure all the agents are disabled before deleting them
+                            await _agentsContext.DrainAsync();
+                            await _agentsContext.DeleteAllAsync();                            
                         }
 
                         _logger.LogInformation("Acknowledging {events}", relevantEvents);
