@@ -60,8 +60,8 @@ namespace AzureVmAgentsService
                             // Remove the agent
                         }
 
-                        _logger.LogInformation("Acknowlding {events}", relevantEvents);
-                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowlding {x.EventId}"));
+                        _logger.LogInformation("Acknowledging {events}", relevantEvents);
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"Acknowledging {x.EventId}"));
                         try
                         {
                             _ = await _instanceMetadataServiceAPI.AcknowledgeScheduldedEvent(new { StartRequests = relevantEvents });
