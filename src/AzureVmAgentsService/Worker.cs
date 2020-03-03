@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using AzureVmAgentsService.Models;
 using Refit;
+using System;
 
 namespace AzureVmAgentsService
 {
@@ -24,6 +25,8 @@ namespace AzureVmAgentsService
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("Starting drainer");
+
             // Query the Instance Metadata Service for the VM name. This may be different to the computer name. The VMName is used in the schdeduled events to specify the machines that may be affcted.
             var _computerName = await _instanceMetadataServiceAPI.GetVMName();
             _logger.LogInformation("Azure VMName {wmvname}", _computerName);
@@ -32,34 +35,61 @@ namespace AzureVmAgentsService
             var events = await _instanceMetadataServiceAPI.GetScheduldedEvents();
             var _documentIncarnation = events.DocumentIncarnation;
 
-            // Ensure all agents are enabled on this server to begin with
+            // Ensure all agents are enabled on this server
             await _agentsContext.EnableAllAsync();            
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogDebug("Checking for ScheduldedEvents");
-                var scheduldedEventsReponse = await _instanceMetadataServiceAPI.GetScheduldedEvents();
-
-                if (_documentIncarnation != scheduldedEventsReponse.DocumentIncarnation) // Then a new event has occured and we need to check if something about to happen to this VM.
+                var scheduldedEventsResponse = new ScheduldedEventsResponse();
+                try
                 {
-                    _logger.LogInformation("DocumentIncarnation changed from {previous} to {current}", _documentIncarnation, scheduldedEventsReponse.DocumentIncarnation);
-                    _documentIncarnation = scheduldedEventsReponse.DocumentIncarnation; // Update the DocumentIncarnation so we don't try to handle the SchdeduldedEvent again.
+                    _logger.LogInformation("Checking for ScheduldedEvents");
+                    scheduldedEventsResponse = await _instanceMetadataServiceAPI.GetScheduldedEvents();
+                }
+                catch(ApiException apiEx)
+                {
+                    // Eat the exception and keep on going 
+                    _logger.LogError("Error checking for ScheduldedEvents. Will continue to run. {errorStatus} {errorContent} ", apiEx.StatusCode, apiEx.Content);                    
+                    // Spoof that the documentionIncartion is the same to avoid falling triggering the drainer below.
+                    scheduldedEventsResponse.DocumentIncarnation = _documentIncarnation;
+                }               
 
-                    var relevantEvents = scheduldedEventsReponse.Events.Where(x => x.Resources.Exists(affectedServer => affectedServer.ToUpper() == _computerName.ToUpper()));
+                if (_documentIncarnation != scheduldedEventsResponse.DocumentIncarnation) // Then a new event has occured and we need to check if something about to happen to this VM.
+                {
+                    _logger.LogInformation("DocumentIncarnation changed from {previous} to {current}", _documentIncarnation, scheduldedEventsResponse.DocumentIncarnation);
+                    _documentIncarnation = scheduldedEventsResponse.DocumentIncarnation; // Update the DocumentIncarnation so we don't try to handle the SchdeduldedEvent again.
+
+                    var relevantEvents = scheduldedEventsResponse.Events.Where(x => x.Resources.Exists(affectedServer => affectedServer.ToUpper() == _computerName.ToUpper()));
                     if (relevantEvents.Any())
                     {
                         _logger.LogInformation("Schedulded events for this server {eventcount}", relevantEvents.Count());
-                        relevantEvents.ToList().ForEach(x => _logger.LogInformation($"EventId: {x.EventId}, EventType: {x.EventType}, NotBefore: {x.NotBefore}"));
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation("{eventId}, {eventType}, {notBefore}", x.EventId, x.EventType, x.NotBefore));
 
-                        if (relevantEvents.Any(x => string.Equals(x.EventType, "Reboot", System.StringComparison.OrdinalIgnoreCase) || string.Equals(x.EventType, "Redeploy", System.StringComparison.OrdinalIgnoreCase)))
+                        if (relevantEvents.Any(x => string.Equals(x.EventType, "Reboot", StringComparison.OrdinalIgnoreCase) || string.Equals(x.EventType, "Redeploy", StringComparison.OrdinalIgnoreCase)))
                         {
-                            await _agentsContext.DrainAsync();
+                            try
+                            {
+                                await _agentsContext.DrainAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError("Error draining agent for reboot or redeploy", ex);
+                                throw;
+                            }                            
                         }
-                        else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", System.StringComparison.OrdinalIgnoreCase)))
+                        else if (relevantEvents.Any(x => string.Equals(x.EventType, "Terminate", StringComparison.OrdinalIgnoreCase)))
                         {
-                            // Ensure all the agents are disabled before deleting them
-                            await _agentsContext.DrainAsync();
-                            await _agentsContext.DeleteAllAsync();                            
+                            try
+                            {
+                                // Ensure all the agents are disabled before deleting them
+                                await _agentsContext.DrainAsync();
+                                await _agentsContext.DeleteAllAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError("Error draining or deleting agent for a terminate", ex);
+                                throw;
+                            }                            
                         }
 
                         _logger.LogInformation("Acknowledging {events}", relevantEvents);
@@ -71,14 +101,18 @@ namespace AzureVmAgentsService
                         catch (ApiException apiEx)
                         {
                             _logger.LogError("Error acknowledging events {errorStatus} {errorContent}", apiEx.StatusCode, apiEx.Content);
-                            throw;                            
-                        }                        
-                    }                   
+                            throw;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("No relevant schedulded events for this server {computerName}", _computerName);
+                        scheduldedEventsResponse.Events.ForEach(x => _logger.LogInformation("Event contained {eventType} {eventStatus} {resources}", x.EventType, x.EventStatus, x.Resources));
+                    }
                 }
                 await Task.Delay(10000, stoppingToken);
             }
             _logger.LogWarning("Exited checking for ScheduldedEvents");
-
         }
     }
 }
