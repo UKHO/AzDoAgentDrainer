@@ -8,11 +8,14 @@ using Refit;
 using Microsoft.Extensions.Configuration;
 using AzureDevopsAgentOperator;
 using AzureVmAgentsService.Models;
+using Polly.Extensions.Http;
 
 namespace AzureVmAgentsService
 {
     public class Program
     {
+        static Random jitterer = new Random();
+
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
@@ -35,8 +38,25 @@ namespace AzureVmAgentsService
                                https://docs.microsoft.com/en-gb/azure/virtual-machines/windows/scheduled-events */
                             c.Timeout = TimeSpan.FromSeconds(120);
                         })
-                        .AddTransientHttpErrorPolicy(p => p.RetryAsync(3));
-
+                        .AddPolicyHandler((service, request) => HttpPolicyExtensions
+                            .HandleTransientHttpError()
+                            .OrResult(r => (int)r.StatusCode == 410) // Retry after some time for a max of 70 seconds 
+                            .OrResult(r => (int)r.StatusCode == 429) // The API currently supports a maximum of 5 queries per second
+                            .WaitAndRetryAsync(new[]
+                            {
+                                TimeSpan.FromSeconds(jitterer.Next(3, 10)),
+                                TimeSpan.FromSeconds(jitterer.Next(12, 22)),
+                                TimeSpan.FromSeconds(jitterer.Next(21, 31)),
+                                TimeSpan.FromSeconds(jitterer.Next(36, 50)),
+                                TimeSpan.FromSeconds(jitterer.Next(51, 60))
+                            }, onRetry: (outcome, timespan, retryAttempt, context) => 
+                            {
+                                service.GetService<ILogger<IInstanceMetadataServiceAPI>>().LogWarning("Retrying {httpMethod} to {address} due to {statusCode}. Delaying for {delay}s",
+                                    outcome.Result.RequestMessage.Method,
+                                    outcome.Result.RequestMessage.RequestUri,
+                                    outcome.Result.StatusCode,
+                                    timespan.TotalSeconds);
+                            }));
                     services.AddSingleton<IAgentOperator, AgentOperator>(sp =>
                     {                        
                         var config = sp.GetService<IConfiguration>().GetSection("drainer").Get<AzureDevopsConfig>();
