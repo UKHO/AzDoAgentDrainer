@@ -36,9 +36,13 @@ namespace AzureVmAgentsService
             var _documentIncarnation = events.DocumentIncarnation;
 
             // Ensure all agents are enabled on this server
-            await _agentsContext.EnableAllAsync();            
+            await _agentsContext.EnableAllAsync();
 
-            while (!stoppingToken.IsCancellationRequested)
+            // Provide a way to manually stop the drainer once the agents have been disabled and event responded to
+            // Else tries to acknowledge the event multiple times
+            var drainerShouldStop = false;
+
+            while (!stoppingToken.IsCancellationRequested && !drainerShouldStop)
             {
                 var scheduldedEventsResponse = new ScheduldedEventsResponse();
                 try
@@ -63,13 +67,14 @@ namespace AzureVmAgentsService
                     if (relevantEvents.Any())
                     {
                         _logger.LogInformation("Schedulded events for this server {eventcount}", relevantEvents.Count());
-                        relevantEvents.ToList().ForEach(x => _logger.LogInformation("{eventId}, {eventType}, {notBefore}", x.EventId, x.EventType, x.NotBefore));
+                        relevantEvents.ToList().ForEach(x => _logger.LogInformation("{eventId}, {eventType}, {notBefore}", x.EventId, x.EventType, x.NotBefore));                        
 
                         if (relevantEvents.Any(x => string.Equals(x.EventType, "Reboot", StringComparison.OrdinalIgnoreCase) || string.Equals(x.EventType, "Redeploy", StringComparison.OrdinalIgnoreCase)))
                         {
                             try
                             {
                                 await _agentsContext.DrainAsync();
+                                drainerShouldStop = true;
                             }
                             catch (Exception ex)
                             {
@@ -84,6 +89,7 @@ namespace AzureVmAgentsService
                                 // Ensure all the agents are disabled before deleting them
                                 await _agentsContext.DrainAsync();
                                 await _agentsContext.DeleteAllAsync();
+                                drainerShouldStop = true;
                             }
                             catch (Exception ex)
                             {
@@ -111,6 +117,11 @@ namespace AzureVmAgentsService
                     }
                 }
                 await Task.Delay(10000, stoppingToken);
+
+                if (drainerShouldStop)
+                {
+                    _logger.LogInformation("drainerShouldStop has been set to true. Stopping drainer");
+                }
             }
             _logger.LogWarning("Exited checking for ScheduldedEvents");
         }
