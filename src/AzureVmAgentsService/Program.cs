@@ -38,7 +38,7 @@ namespace AzureVmAgentsService
                                https://docs.microsoft.com/en-gb/azure/virtual-machines/windows/scheduled-events */
                             c.Timeout = TimeSpan.FromSeconds(120);
                         })
-                        .AddPolicyHandler(p => HttpPolicyExtensions
+                        .AddPolicyHandler((service, request) => HttpPolicyExtensions
                             .HandleTransientHttpError()
                             .OrResult(r => (int)r.StatusCode == 410) // Retry after some time for a max of 70 seconds 
                             .OrResult(r => (int)r.StatusCode == 429) // The API currently supports a maximum of 5 queries per second
@@ -49,6 +49,13 @@ namespace AzureVmAgentsService
                                 TimeSpan.FromSeconds(jitterer.Next(21, 31)),
                                 TimeSpan.FromSeconds(jitterer.Next(36, 50)),
                                 TimeSpan.FromSeconds(jitterer.Next(51, 60))
+                            }, onRetry: (outcome, timespan, retryAttempt, context) => 
+                            {
+                                service.GetService<ILogger<IInstanceMetadataServiceAPI>>().LogWarning("Retrying {httpMethod} to {address} due to {statusCode}. Delaying for {delay}s",
+                                    outcome.Result.RequestMessage.Method,
+                                    outcome.Result.RequestMessage.RequestUri,
+                                    outcome.Result.StatusCode,
+                                    timespan.TotalSeconds);
                             }));
                     services.AddSingleton<IAgentOperator, AgentOperator>(sp =>
                     {                        
