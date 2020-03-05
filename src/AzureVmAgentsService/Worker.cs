@@ -49,6 +49,7 @@ namespace AzureVmAgentsService
                 {
                     _logger.LogInformation("Checking for ScheduldedEvents");
                     scheduldedEventsResponse = await _instanceMetadataServiceAPI.GetScheduldedEvents();
+                    _logger.LogInformation("Checked for ScheduldedEvents");
                 }
                 catch(ApiException apiEx)
                 {
@@ -116,6 +117,10 @@ namespace AzureVmAgentsService
                         scheduldedEventsResponse.Events.ForEach(x => _logger.LogInformation("Event contained {eventType} {eventStatus} {resources}", x.EventType, x.EventStatus, x.Resources));
                     }
                 }
+                else{
+                    _logger.LogInformation("DocumentIncarnation has not changed");
+                }
+
                 await Task.Delay(10000, stoppingToken);
 
                 if (drainerShouldStop)
