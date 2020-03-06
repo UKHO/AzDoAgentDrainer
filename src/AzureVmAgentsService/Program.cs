@@ -38,6 +38,7 @@ namespace AzureVmAgentsService
                                https://docs.microsoft.com/en-gb/azure/virtual-machines/windows/scheduled-events */
                             c.Timeout = TimeSpan.FromSeconds(120);
                         })
+                        .AddHttpMessageHandler<SimpleLoggingHandler>()
                         .AddPolicyHandler((service, request) => HttpPolicyExtensions
                             .HandleTransientHttpError()
                             .OrResult(r => (int)r.StatusCode == 410) // Retry after some time for a max of 70 seconds 
