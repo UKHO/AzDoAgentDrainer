@@ -28,6 +28,7 @@ namespace AzureVmAgentsService
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<Worker>();
+                    services.AddTransient<SimpleLoggingHandler>();
                     services.AddRefitClient<IInstanceMetadataServiceAPI>()
                         .ConfigureHttpClient(c =>
                         {
