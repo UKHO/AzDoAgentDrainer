@@ -22,7 +22,7 @@ steps:
      gitHubConnection: UKHO GitHub
      repositoryName: UKHO/AzDoAgentDrainer     
      tagSource: userSpecifiedTag
-     tag: v0.3.4 
+     tag: v0.3.5
      assets: |
        $(Build.ArtifactStagingDirectory)/azurevmagentservice.zip
        $(Build.ArtifactStagingDirectory)/azurevmagentservice.tar.gz
