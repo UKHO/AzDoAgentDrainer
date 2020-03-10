@@ -1,4 +1,4 @@
-# The "disable private Azure DevOps agents running on a Azure VM" application
+# The "disable private Azure DevOps agents running on a Azure VM" application [![Build Status](https://ukhogov.visualstudio.com/Pipelines/_apis/build/status/UKHO.AzDoAgentDrainer?branchName=master)](https://ukhogov.visualstudio.com/Pipelines/_build/latest?definitionId=177&branchName=master)
 
 Gracefully drains an Azure VM that is running private Azure DevOps agent of any active jobs. This allows the VM to be restarted saftely without disrupting any running jobs or builds on that VM.
 
